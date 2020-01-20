@@ -6,7 +6,8 @@ SolutionList::SolutionList(const string * path, int path_length)
 	Solution* p = head;
 	for (int i = 0; i < path_length; i++)
 	{
-		Solution* tmp = new Solution(i, path[i]);
+		Solution* tmp = new Solution(i, path[i]);	
+		tmp->id = i;
 		p->next = tmp;	p = tmp;
 		length++;
 	}
@@ -18,17 +19,18 @@ SolutionList::~SolutionList()
 	Solution* p = head->next;
 	while (length != 0)
 	{
-		q = p;	p = p->next;	//Î»ÒÆ
-		delete q; length--;		//É¾³ı
+		q = p;	p = p->next;	//ä½ç§»
+		delete q; length--;		//åˆ é™¤
 	}
-	delete head;	//ÆşÍ·
+	delete head;	//æå¤´
 	length = 0;
 }
 
 Solution* SolutionList::operator[](int index) const
 {
-	if (index >= length) {
-		cout << "Ë÷ÒıÔ½½ç" << endl;
+	if (index >= length)
+	{
+		cout << "ç´¢å¼•è¶Šç•Œ" << endl;
 		exit(-1);
 	}
 	Solution* p = head->next;
@@ -38,26 +40,58 @@ Solution* SolutionList::operator[](int index) const
 	}
 	return p;
 }
+int SolutionList::Length()
+{
+	return this->length;
+}
+void SolutionList::showSolutions()
+{
+	Solution* p = head->next;
+	cout << "id\tRGB_average\tmol\t\tpath "<< endl;
+	for (int i = 0; i < this->length; i++)
+	{
+		cout << p->id << "\t" << p->RGB_average << "\t\t" << p->mol << "\t" << p->path << endl;
+		p = p->next;
+	}
+}
+void SolutionList::showRGB_P()
+{
+	Solution* p = head->next;
+	cout << "id\tRGB_average\tmol\tRGB_P " << endl;
+	for (int i = 0; i < this->length; i++)
+	{
+		cout << p->id << "   \t" << p->RGB_average << "\t\t" << p->mol << "\t" << p->RGB_P<< "\t" << endl;
+		p = p->next;
+	}
+}
 /********************************************************************/
 int SolutionOperator::getRGB_average(string path)
 {
 	Mat img = imread(path);
-	/*ÅĞ¶ÏÂ·¾¶ÊÇ·ñºÏ·¨*/
+	/*åˆ¤æ–­è·¯å¾„æ˜¯å¦åˆæ³•*/
 	if (img.empty())
 	{
-		cout << "¶ÁÈ¡Í¼Æ¬Ê§°Ü£¬Çë¼ì²âÂ·¾¶ÊÇ·ñÕıÈ·" << endl;
+		cout << "è¯»å–å›¾ç‰‡å¤±è´¥ï¼Œè¯·æ£€æµ‹è·¯å¾„æ˜¯å¦æ­£ç¡®" << endl;
 		exit(-1);
 	}
 	int RGB_average = 0;
-	/*¶ÁÈ¡Í¼ÏñµÄRGBĞÅÏ¢¡ª¡ªÇøÓòÃ¿ÏñËØµÄÆ½¾ùRGB*/
-	for (int i = 0; i < img.rows; i++) {
-		for (int j = 0; j < img.cols; j++) {
+	/*è¯»å–å›¾åƒçš„RGBä¿¡æ¯â€”â€”åŒºåŸŸæ¯åƒç´ çš„å¹³å‡RGB*/
+	for (int i = 0; i < img.rows; i++) 
+	{
+		for (int j = 0; j < img.cols; j++)
+		{
 			int tmp = img.at<Vec3b>(i, j)[0] + img.at<Vec3b>(i, j)[1] + img.at<Vec3b>(i, j)[2];
 			tmp /= 3;
 			RGB_average += tmp;
 		}
 	}
-	return RGB_average /= img.rows * img.cols;	//rows*cols¸öÏñËØ
+	return RGB_average /= img.rows * img.cols;	//rows*colsä¸ªåƒç´ 
+}
+
+double SolutionOperator::compute_RGB_P(int index)
+{
+	return this->solutions[index]->RGB_P
+	= log((double)solutions[0]->RGB_average / solutions[index]->RGB_average);
 }
 
 int SolutionOperator::getRGB_average(int index)
@@ -65,5 +99,22 @@ int SolutionOperator::getRGB_average(int index)
 	if (solutions[index]->RGB_average != -1)
 		return solutions[index]->RGB_average;
 	solutions[index]->RGB_average = this->getRGB_average(solutions[index]->path);
+	//cout << "solutions[index]->RGB_average 2 : " << solutions[index]->RGB_average << endl;
 	return solutions[index]->RGB_average;
+}
+
+double* SolutionOperator::compute_RGB_P()
+{
+	double* RGB_n = new double[this->solutions.Length() - 1];
+	/*é“¾è¡¨ç¬¬ä¸€ä¸ªç»“ç‚¹çš„æº¶æ¶²æ˜¯å‚è€ƒæº¶æ¶²ï¼Œå› æ­¤è·³è¿‡è®¡ç®—*/
+	for (int i = 1; i < this->solutions.Length(); i++)
+	{
+		RGB_n[i - 1] = this->compute_RGB_P(i);
+	}
+	return RGB_n;
+}
+
+bool SolutionOperator::set_mol(int index, double mol)
+{
+	return solutions[index]->set_mol(mol);
 }
