@@ -1,6 +1,8 @@
 #include <iostream>
 #include <opencv.hpp>
-
+#include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/highgui/highgui.hpp"
+#include <vector>
 #include"SolutionOperator.h"
 
 using namespace std;
@@ -30,6 +32,9 @@ const string NiSO4[7] = {"./溶液图像/硫酸镍(0).jpg",
 						 "./溶液图像/硫酸镍(4).jpg",
 						 "./溶液图像/硫酸镍(5).jpg",
 						 "./溶液图像/硫酸镍(x).jpg" };
+
+Mat polyfit(vector<Point2d>& solutions_vector, int n);
+
 
 int main()
 {
@@ -80,5 +85,59 @@ int main()
 	solutions_NiSO4.showRGB_P();
 	cout << "------------------------------------------------------------------" << endl;
 	
+	/*坐标赋值-->*/
+	Point2d CuSO4_Point[5];	//Point2d代表point的x和y是double型
+	Point2d CoSO4_Point[5];
+	Point2d NiSO4_Point[5];
+	for (int i = 1; i <= 5; i++)
+	{
+		CuSO4_Point[i - 1].x = solutions_CuSO4[i]->RGB_P; CuSO4_Point[i - 1].y = solutions_CuSO4[i]->mol;
+		CoSO4_Point[i - 1].x = solutions_CoSO4[i]->RGB_P; CoSO4_Point[i - 1].y = solutions_CoSO4[i]->mol;
+		NiSO4_Point[i - 1].x = solutions_NiSO4[i]->RGB_P; NiSO4_Point[i - 1].y = solutions_NiSO4[i]->mol;
+	}
+	vector<Point2d> CuSO4_vector(begin(CuSO4_Point), end(CuSO4_Point));
+	vector<Point2d> CoSO4_vector(begin(CoSO4_Point), end(CoSO4_Point));
+	vector<Point2d> NiSO4_vector(begin(NiSO4_Point), end(NiSO4_Point));
+	cout << "\t RGB_P(x) \t mol(y)" << endl
+		<< CuSO4_vector << "\n" << endl
+		<< CoSO4_vector << "\n" << endl
+		<< NiSO4_vector << "\n" << endl;
+	/*-->坐标赋值*/
+	 
+	Mat CuSO4_image = cv::Mat::zeros(480, 640, CV_8UC3);
+	//for (int i = 0; i < 5; i++)
+	//	circle(CuSO4_image, CuSO4_vector[i], 0, cv::Scalar(255, 255, 255), 2, 8, 5);
+	Vec4d line_para;
+	fitLine(CuSO4_vector, line_para, DIST_L2, 0, 1e-6, 1e-1);		//DIST_L2代表最小二乘法
+	cout << "line_para = " << line_para << endl;
+	double k_line = line_para[1] / line_para[0];
+	Point p1(0, k_line * (0 - line_para[2]) + line_para[3]);
+	Point p2(CuSO4_image.cols - 1, k_line * ((double)CuSO4_image.cols - 1 - line_para[2]) + line_para[3]);
+	char text_equation[1024];
+	sprintf_s(text_equation, "y=%.2f(x-%.2f)+%.2f", line_para[3], k_line, line_para[2]);
+	putText(CuSO4_image, text_equation, Point(60, 50), FONT_HERSHEY_COMPLEX, 0.5, Scalar(0, 0, 255), 1, 8);
+	line(CuSO4_image, p1, p2, Scalar(0, 0, 255), 2);
+	cv::imshow("CuSO4_image", CuSO4_image);
+	cv::waitKey(0);
 	return 0;
+}
+/*暂时没用*/
+Mat polyfit(vector<Point2d>& solutions_vector, int n)
+{
+	size_t size = solutions_vector.size();
+	//所求未知数个数
+	int x_num = n + 1;
+	//构造矩阵U和Y
+	Mat mat_u(size, x_num, CV_64F);
+	Mat mat_y(size, 1, CV_64F);
+	for (int i = 0; i < mat_u.rows; ++i)
+		for (int j = 0; j < mat_u.cols; ++j)
+			mat_u.at<double>(i, j) = pow(solutions_vector[i].x, j);
+	for (int i = 0; i < mat_y.rows; ++i)
+		mat_y.at<double>(i, 0) = solutions_vector[i].y;
+	//矩阵运算，获得系数矩阵K
+	Mat mat_k(x_num, 1, CV_64F);
+	mat_k = (mat_u.t() * mat_u).inv() * mat_u.t() * mat_y;
+	cout<<"mat_k is : "<< mat_k << endl;
+	return mat_k;
 }
