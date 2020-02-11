@@ -33,8 +33,8 @@ const string NiSO4[7] = {"./溶液图像/硫酸镍(0).jpg",
 						 "./溶液图像/硫酸镍(5).jpg",
 						 "./溶液图像/硫酸镍(x).jpg" };
 
-Mat polyfit(vector<Point2d>& solutions_vector, int n);
-
+Mat polyfit(vector<Point2d>& solutions_vector, int n, double x);
+double get_mol(Vec4d line_para, double x);
 
 int main()
 {
@@ -103,41 +103,39 @@ int main()
 		<< CoSO4_vector << "\n" << endl
 		<< NiSO4_vector << "\n" << endl;
 	/*-->坐标赋值*/
-	 
-	Mat CuSO4_image = cv::Mat::zeros(480, 640, CV_8UC3);
-	//for (int i = 0; i < 5; i++)
-	//	circle(CuSO4_image, CuSO4_vector[i], 0, cv::Scalar(255, 255, 255), 2, 8, 5);
-	Vec4d line_para;
-	fitLine(CuSO4_vector, line_para, DIST_L2, 0, 1e-6, 1e-1);		//DIST_L2代表最小二乘法
-	cout << "line_para = " << line_para << endl;
-	double k_line = line_para[1] / line_para[0];
-	Point p1(0, k_line * (0 - line_para[2]) + line_para[3]);
-	Point p2(CuSO4_image.cols - 1, k_line * ((double)CuSO4_image.cols - 1 - line_para[2]) + line_para[3]);
-	char text_equation[1024];
-	sprintf_s(text_equation, "y=%.2f(x-%.2f)+%.2f", line_para[3], k_line, line_para[2]);
-	putText(CuSO4_image, text_equation, Point(60, 50), FONT_HERSHEY_COMPLEX, 0.5, Scalar(0, 0, 255), 1, 8);
-	line(CuSO4_image, p1, p2, Scalar(0, 0, 255), 2);
-	cv::imshow("CuSO4_image", CuSO4_image);
-	cv::waitKey(0);
+	CuSO4.polyfit(CuSO4_vector);
+	CoSO4.polyfit(CoSO4_vector);
+	NiSO4.polyfit(NiSO4_vector);
+	cout << CuSO4.get_x_mol(solutions_CuSO4[6]->RGB_P) << endl
+		<< CoSO4.get_x_mol(solutions_CoSO4[6]->RGB_P) << endl
+		<< NiSO4.get_x_mol(solutions_NiSO4[6]->RGB_P) << endl;
 	return 0;
 }
-/*暂时没用*/
-Mat polyfit(vector<Point2d>& solutions_vector, int n)
+/*参数n暂时没用*/
+/*以下函数已封装入SolutionOperator类中*/
+Mat polyfit(vector<Point2d>& solutions_vector, int n, double x)
 {
-	size_t size = solutions_vector.size();
-	//所求未知数个数
-	int x_num = n + 1;
-	//构造矩阵U和Y
-	Mat mat_u(size, x_num, CV_64F);
-	Mat mat_y(size, 1, CV_64F);
-	for (int i = 0; i < mat_u.rows; ++i)
-		for (int j = 0; j < mat_u.cols; ++j)
-			mat_u.at<double>(i, j) = pow(solutions_vector[i].x, j);
-	for (int i = 0; i < mat_y.rows; ++i)
-		mat_y.at<double>(i, 0) = solutions_vector[i].y;
-	//矩阵运算，获得系数矩阵K
-	Mat mat_k(x_num, 1, CV_64F);
-	mat_k = (mat_u.t() * mat_u).inv() * mat_u.t() * mat_y;
-	cout<<"mat_k is : "<< mat_k << endl;
-	return mat_k;
+	Mat Solution_image = cv::Mat::zeros(480, 640, CV_8UC3);
+	Vec4d line_para;
+	fitLine(solutions_vector, line_para, DIST_L2, 0, 1e-6, 1e-1);		//DIST_L2代表最小二乘法
+	double k_line = line_para[1] / line_para[0];	//计算k
+	Point2d p1(0, k_line * (0 - line_para[2]) + line_para[3]);
+	Point2d p2(Solution_image.cols - 1, k_line * ((double)Solution_image.cols - 1 - line_para[2]) + line_para[3]);
+	char text_equation[1024];
+	sprintf_s(text_equation, "y=%.2f(x-%.2f)+%.2f", line_para[3], k_line, line_para[2]);
+	double y = get_mol(line_para, x);
+	cout << "y is :" << y << endl;
+
+	putText(Solution_image, text_equation, Point(60, 50), FONT_HERSHEY_COMPLEX, 0.5, Scalar(0, 0, 255), 1, 8);
+	line(Solution_image, p1, p2, Scalar(0, 0, 255), 2);
+	return Solution_image;
+}	
+double get_mol(Vec4d line_para, double x)
+{
+	Mat Solution_image = cv::Mat::zeros(480, 640, CV_8UC3);
+	double k_line = line_para[1] / line_para[0];	//计算k
+	Point2d p1(0, k_line * (0 - line_para[2]) + line_para[3]);
+	Point2d p2(Solution_image.cols - 1, k_line * ((double)Solution_image.cols - 1 - line_para[2]) + line_para[3]);
+	double y = p1.y + ((p2.y - p1.y) / (p2.x - p1.x)) * (x - p1.x);
+	return y;
 }
