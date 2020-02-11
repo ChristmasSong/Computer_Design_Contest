@@ -37,13 +37,19 @@ public:
 class SolutionOperator {
 private:
 	SolutionList& solutions;
+	double solution_mol = -1;
+	Vec4d line_area;
+	Mat Solution_mat;
 protected:
 	int getRGB_average(string path);
 	double compute_RGB_P(int index);
+	void compute_mol(double x);
 public:
 	SolutionOperator(SolutionList& s) :solutions(s) {}
 	~SolutionOperator() {}
 	int getRGB_average(int index);
 	double* compute_RGB_P();
 	bool set_mol(int index, double mol);
+	Vec4d polyfit(vector<Point2d>& solutions_vector);
+	double get_x_mol(double x);
 };
