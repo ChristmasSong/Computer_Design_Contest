@@ -94,6 +94,14 @@ double SolutionOperator::compute_RGB_P(int index)
 	= log((double)solutions[0]->RGB_average / solutions[index]->RGB_average);
 }
 
+void SolutionOperator::compute_mol(double x)
+{
+	double k_line = line_area[1] / line_area[0];	//计算k
+	Point2d p1(0, k_line * (0 - line_area[2]) + line_area[3]);
+	Point2d p2(Solution_mat.cols - 1, k_line * ((double)Solution_mat.cols - 1 - line_area[2]) + line_area[3]);
+	solution_mol = p1.y + ((p2.y - p1.y) / (p2.x - p1.x)) * (x - p1.x);
+}
+
 int SolutionOperator::getRGB_average(int index)
 {
 	if (solutions[index]->RGB_average != -1)
@@ -117,4 +125,17 @@ double* SolutionOperator::compute_RGB_P()
 bool SolutionOperator::set_mol(int index, double mol)
 {
 	return solutions[index]->set_mol(mol);
+}
+
+Vec4d SolutionOperator::polyfit(vector<Point2d>& solutions_vector)
+{
+	Solution_mat = cv::Mat::zeros(480, 640, CV_8UC3);
+	fitLine(solutions_vector, line_area, DIST_L2, 0, 1e-6, 1e-1);		//DIST_L2代表最小二乘法
+	return line_area;
+}
+
+double SolutionOperator::get_x_mol(double x)
+{
+	compute_mol(x);
+	return this->solution_mol;
 }
