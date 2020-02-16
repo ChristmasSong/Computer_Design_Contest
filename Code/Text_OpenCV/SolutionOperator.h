@@ -34,6 +34,9 @@ public:
 	void showRGB_P();
 };
 
+/*此枚举用来获取图像的RGB三通道的值*/
+enum RGB_type {R, G, B, RGB};
+
 class SolutionOperator {
 private:
 	SolutionList& solutions;
@@ -52,4 +55,5 @@ public:
 	bool set_mol(int index, double mol);
 	Vec4d polyfit(vector<Point2d>& solutions_vector);
 	double get_x_mol(double x);
+	int get_signal_RGB(RGB_type type, int index);
 };
