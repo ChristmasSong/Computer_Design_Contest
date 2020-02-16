@@ -80,9 +80,9 @@ int SolutionOperator::getRGB_average(string path)
 	{
 		for (int j = 0; j < img.cols; j++)
 		{
-			int tmp = img.at<Vec3b>(i, j)[0] + img.at<Vec3b>(i, j)[1] + img.at<Vec3b>(i, j)[2];
-			tmp /= 3;
-			RGB_average += tmp;
+			int RGB_tmp = img.at<Vec3b>(i, j)[0] + img.at<Vec3b>(i, j)[1] + img.at<Vec3b>(i, j)[2];
+			RGB_tmp /= 3;
+			RGB_average += RGB_tmp;
 		}
 	}
 	return RGB_average /= img.rows * img.cols;	//rows*cols个像素
@@ -124,6 +124,7 @@ double* SolutionOperator::compute_RGB_P()
 
 bool SolutionOperator::set_mol(int index, double mol)
 {
+
 	return solutions[index]->set_mol(mol);
 }
 
@@ -138,4 +139,33 @@ double SolutionOperator::get_x_mol(double x)
 {
 	compute_mol(x);
 	return this->solution_mol;
+}
+
+int SolutionOperator::get_signal_RGB(RGB_type type, int index)
+{
+	if (type == RGB_type::RGB)
+	{
+		return getRGB_average(solutions[index]->path);
+	}
+	Mat img = imread(solutions[index]->path);
+	//cout << "path is " << solutions[index]->path << ", the type is " << type << endl;
+	/*判断路径是否合法*/
+	if (img.empty())
+	{
+		cout << "读取图片失败，请检测路径是否正确" << endl;
+		exit(-1);
+	}
+	int RGB_average = 0;
+	/*读取图像的RGB信息——区域每像素的平均RGB*/
+	for (int i = 0; i < img.rows; i++)
+	{
+		for (int j = 0; j < img.cols; j++)
+		{
+			int RGB_tmp = img.at<Vec3b>(i, j)[type];
+			RGB_tmp /= 3;
+			RGB_average += RGB_tmp;
+		}
+	}
+	return RGB_average /= img.rows * img.cols;	//rows*cols个像素
+
 }
