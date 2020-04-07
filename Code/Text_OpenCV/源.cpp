@@ -24,7 +24,6 @@ const string CoSO4[7] = {"./溶液图像/硫酸钴(0).jpg",
 						 "./溶液图像/硫酸钴(5).jpg",
 						 "./溶液图像/硫酸钴(x).jpg"};
 
-
 const string NiSO4[7] = {"./溶液图像/硫酸镍(0).jpg",
 						 "./溶液图像/硫酸镍(1).jpg",
 						 "./溶液图像/硫酸镍(2).jpg",
@@ -32,6 +31,114 @@ const string NiSO4[7] = {"./溶液图像/硫酸镍(0).jpg",
 						 "./溶液图像/硫酸镍(4).jpg",
 						 "./溶液图像/硫酸镍(5).jpg",
 						 "./溶液图像/硫酸镍(x).jpg" };
+
+void computeSolutionRGB(SolutionOperator& solution) {
+	for (int i = 0; i < 7; i++)
+	{
+		cout << i << "  ";
+		cout << solution.getRGB_average(RGB_type::R, i) << "  \t";
+		cout << solution.getRGB_average(RGB_type::G, i) << "  \t";
+		cout << solution.getRGB_average(RGB_type::B, i) << "  \t";
+		cout << solution.getRGB_average(RGB_type::RGB, i) << endl;
+	}
+}
+
+void computeRGB_PAll(SolutionOperator& solution) {
+	solution.compute_RGB_P(RGB_type::R);
+	solution.compute_RGB_P(RGB_type::G);
+	solution.compute_RGB_P(RGB_type::B);
+	solution.compute_RGB_P(RGB_type::RGB);
+}
+
+void get_target_mol(SolutionList& solutions, SolutionOperator& solutionOp, RGB_type type) {
+	cout << "未知溶液的浓度拟合为:" << endl;
+	switch (type)
+	{
+	case R:
+		cout << solutionOp.get_x_mol(solutions[6]->rgb_item.R_P) << endl;
+		break;
+	case G:
+		cout << solutionOp.get_x_mol(solutions[6]->rgb_item.G_P) << endl;
+		break;
+	case B:
+		cout << solutionOp.get_x_mol(solutions[6]->rgb_item.B_P) << endl;
+		break;
+	case RGB:
+		cout << solutionOp.get_x_mol(solutions[6]->rgb_item.RGB_P) << endl;
+		break;
+	}
+}
+
+void get_all_mol(SolutionList& solutions, SolutionOperator& solutionOp, RGB_type type) {
+	switch (type)
+	{
+	case R:
+		for (int i = 1; i < 7; i++)
+		{
+			cout << "RGB_P is :" << solutions[i]->rgb_item.R_P
+				<< " 拟合mol : " << solutionOp.get_x_mol(solutions[i]->rgb_item.R_P)
+				<< " 原mol : " << solutions[i]->mol << endl;
+		}
+		break;
+	case G:
+		for (int i = 1; i < 7; i++)
+		{
+			cout << "RGB_P is :" << solutions[i]->rgb_item.G_P
+				<< " 拟合mol : " << solutionOp.get_x_mol(solutions[i]->rgb_item.G_P)
+				<< " 原mol : " << solutions[i]->mol << endl;
+		}
+		break;
+	case B:
+		for (int i = 1; i < 7; i++)
+		{
+			cout << "RGB_P is :" << solutions[i]->rgb_item.B_P
+				<< " 拟合mol : " << solutionOp.get_x_mol(solutions[i]->rgb_item.B_P)
+				<< " 原mol : " << solutions[i]->mol << endl;
+		}
+		break;
+	case RGB:
+		for (int i = 1; i < 7; i++)
+		{
+			cout << "RGB_P is :" << solutions[i]->rgb_item.RGB_P
+				<< " 拟合mol : " << solutionOp.get_x_mol(solutions[i]->rgb_item.RGB_P)
+				<< " 原mol : " << solutions[i]->mol << endl;
+		}
+		break;
+	}
+}
+
+vector<Point2d> loadPoint2Vec(SolutionList& solution, RGB_type type) {
+	Point2d points[6];
+	switch (type)
+	{
+	case R:
+		for (int i = 0; i < 6; i++)
+		{
+			points[i].x = solution[i]->mol; points[i].y = solution[i]->rgb_item.R_P;
+		}
+		break;
+	case G:
+		for (int i = 0; i < 6; i++)
+		{
+			points[i].x = solution[i]->mol; points[i].y = solution[i]->rgb_item.G_P;
+		}
+		break;
+	case B:
+		for (int i = 0; i < 6; i++)
+		{
+			points[i].x = solution[i]->mol; points[i].y = solution[i]->rgb_item.B_P;
+		}
+		break;
+	case RGB:
+		for (int i = 0; i < 6; i++)
+		{
+			points[i].x = solution[i]->mol; points[i].y = solution[i]->rgb_item.RGB_P;
+		}
+		break;
+	}
+	vector<Point2d> vector(begin(points), end(points));
+	return vector;
+}
 
 int main()
 {
@@ -44,15 +151,16 @@ int main()
 	SolutionOperator CuSO4_operator(solutions_CuSO4);
 	SolutionOperator CoSO4_operator(solutions_CoSO4);
 	SolutionOperator NiSO4_operator(solutions_NiSO4);
+	RGB_type type = RGB_type::R;
 	cout << "------------------------------------------------------------------" << endl;
 
 	/*计算平均RGB--*/
-	for (int i = 0; i < 7; i++)
-	{
-		CuSO4_operator.getRGB_average(i);
-		CoSO4_operator.getRGB_average(i);
-		NiSO4_operator.getRGB_average(i);
-	}
+	computeSolutionRGB(CuSO4_operator);
+	cout << "------------------------------------------------------------------" << endl;
+	computeSolutionRGB(CoSO4_operator);
+	cout << "------------------------------------------------------------------" << endl;
+	computeSolutionRGB(NiSO4_operator);
+	cout << "------------------------------------------------------------------" << endl;
 	/*--计算平均RGB*/
 
 	/*设置溶液浓度--*/
@@ -64,70 +172,66 @@ int main()
 	}
 	/*--设置溶液浓度*/
 
-	solutions_CuSO4.showSolutions();
+	solutions_CuSO4.showRGB();
 	cout << "------------------------------------------------------------------" << endl;
-	solutions_CoSO4.showSolutions();
+	solutions_CoSO4.showRGB();
 	cout << "------------------------------------------------------------------" << endl;
-	solutions_NiSO4.showSolutions();
+	solutions_NiSO4.showRGB();
 
 	/*计算对比RGB_P--*/
 	/*注意！！！！！！！！！！！！！
-	**此处只计算了6处RGP_P
-	**因为用于对比的溶液(索引号0)的被跳过计算
+	xxx此处只计算了6处RGP_P
+	xxx因为用于对比的溶液(索引号0)的被跳过计算
+	** 2-29日修改，索引0的溶液被用来计算，即计算了7处
 	*/
-	double* CuSO4_RGB_n = CuSO4_operator.compute_RGB_P();
-	double* CoSO4_RGB_n = CoSO4_operator.compute_RGB_P();
-	double* NiSO4_RGB_n = NiSO4_operator.compute_RGB_P();
-	for (int i = 0; i < 6; i++)
-		cout<<"solution_CuSO4 "<< i + 1 << " : " << CuSO4_RGB_n[i] << endl;
+	computeRGB_PAll(CuSO4_operator);
+	computeRGB_PAll(CoSO4_operator);
+	computeRGB_PAll(NiSO4_operator);
+	//solutions_CuSO4.showRGB();
 	cout << "------------------------------------------------------------------" << endl;
+	solutions_CuSO4.showRGB();
+	cout << "------------------------------------------------------------------" << endl;
+	solutions_CoSO4.showRGB();
+	cout << "------------------------------------------------------------------" << endl;
+	solutions_NiSO4.showRGB();
 	/*--计算对比RGB_P*/
-
-	cout << "------------------------------------------------------------------" << endl;
-	solutions_CuSO4.showRGB_P();
-	cout << "------------------------------------------------------------------" << endl;
-	solutions_CoSO4.showRGB_P();
-	cout << "------------------------------------------------------------------" << endl;
-	solutions_NiSO4.showRGB_P();
-	cout << "------------------------------------------------------------------" << endl;
 	
 	/*获取RGB单通道的值-->*/
 	cout << "获取RGB单通道的值(以CuSO4溶液为例)" << endl;
-	int R[7], G[7], B[7], RGB[7];
+	double R[7], G[7], B[7], RGB[7];
 	for (int i = 0; i < 7; i++)
 	{
 		R[i] = CuSO4_operator.get_signal_RGB(RGB_type::R, i);
 		G[i] = CuSO4_operator.get_signal_RGB(RGB_type::G, i);
 		B[i] = CuSO4_operator.get_signal_RGB(RGB_type::B, i);
 		RGB[i] = CuSO4_operator.get_signal_RGB(RGB_type::RGB, i);
-		printf_s("R[%d] = %d, G[%d] = %d, B[%d] = %d, RGB[%d] = %d \n" ,i ,R[i], i, G[i], i, B[i], i, RGB[i]);
+		printf_s("R[%d] = %.4f, G[%d] = %.4f, B[%d] = %.4f, RGB[%d] = %.4f \n" ,i ,R[i], i, G[i], i, B[i], i, RGB[i]);
 	}
 	cout << "------------------------------------------------------------------" << endl;
 	/*-->获取RGB单通道的值*/
 
 	/*坐标赋值-->*/
-	Point2d CuSO4_Point[5];	//Point2d代表point的x和y是double型
-	Point2d CoSO4_Point[5];
-	Point2d NiSO4_Point[5];
-	for (int i = 1; i <= 5; i++)
-	{
-		CuSO4_Point[i - 1].x = solutions_CuSO4[i]->RGB_P; CuSO4_Point[i - 1].y = solutions_CuSO4[i]->mol;
-		CoSO4_Point[i - 1].x = solutions_CoSO4[i]->RGB_P; CoSO4_Point[i - 1].y = solutions_CoSO4[i]->mol;
-		NiSO4_Point[i - 1].x = solutions_NiSO4[i]->RGB_P; NiSO4_Point[i - 1].y = solutions_NiSO4[i]->mol;
-	}
-	vector<Point2d> CuSO4_vector(begin(CuSO4_Point), end(CuSO4_Point));
-	vector<Point2d> CoSO4_vector(begin(CoSO4_Point), end(CoSO4_Point));
-	vector<Point2d> NiSO4_vector(begin(NiSO4_Point), end(NiSO4_Point));
-	cout << "\t RGB_P(x) \t mol(y)" << endl
-		<< CuSO4_vector << "\n" << endl
-		<< CoSO4_vector << "\n" << endl
-		<< NiSO4_vector << "\n" << endl;
+	vector<Point2d> CuSO4_vector = loadPoint2Vec(solutions_CuSO4, type);
+	vector<Point2d> CoSO4_vector = loadPoint2Vec(solutions_CoSO4, type);
+	vector<Point2d> NiSO4_vector = loadPoint2Vec(solutions_NiSO4, type);
+	cout << "\t mol(x) \t RGB_P(y)" << endl
+		<< "CuSO4_vector is :\n" << CuSO4_vector << "\n" << endl
+		<< "CoSO4_vector is :\n" << CoSO4_vector << "\n" << endl
+		<< "NiSO4_vector is :\n" << NiSO4_vector << "\n" << endl;
 	/*-->坐标赋值*/
-	CuSO4_operator.polyfit(CuSO4_vector);
-	CoSO4_operator.polyfit(CoSO4_vector);
-	NiSO4_operator.polyfit(NiSO4_vector);
-	cout << CuSO4_operator.get_x_mol(solutions_CuSO4[6]->RGB_P) << endl
-		<< CoSO4_operator.get_x_mol(solutions_CoSO4[6]->RGB_P) << endl
-		<< NiSO4_operator.get_x_mol(solutions_NiSO4[6]->RGB_P) << endl;
+
+	cout << "CuSO4 line_area: \n" << CuSO4_operator.polyfit(CuSO4_vector) << endl;
+	cout << "CoSO4 line_area: \n" << CoSO4_operator.polyfit(CoSO4_vector) << endl;
+	cout << "NiSO4 line_area: \n" << NiSO4_operator.polyfit(NiSO4_vector) << endl;
+
+	get_target_mol(solutions_CuSO4, CuSO4_operator, type);
+	get_target_mol(solutions_CoSO4, CoSO4_operator, type);
+	get_target_mol(solutions_NiSO4, NiSO4_operator, type);
+	cout << "------------------------------------------------------------------" << endl;
+	get_all_mol(solutions_CuSO4, CuSO4_operator, type);
+	cout << "------------------------------------------------------------------" << endl;
+	get_all_mol(solutions_CoSO4, CoSO4_operator, type);
+	cout << "------------------------------------------------------------------" << endl;
+	get_all_mol(solutions_NiSO4, NiSO4_operator, type);
 	return 0;
 }
