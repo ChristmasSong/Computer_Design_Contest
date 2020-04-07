@@ -44,13 +44,19 @@ int SolutionList::Length()
 {
 	return this->length;
 }
+void SolutionList::append(int i, string path)
+{
+	Solution* p = head;
+	while (p->next)	p = p->next;
+	p->next = new Solution(i, path); length++;
+}
 void SolutionList::showSolutions()
 {
 	Solution* p = head->next;
 	cout << "id\tRGB_average\tmol\t\tpath "<< endl;
 	for (int i = 0; i < this->length; i++)
 	{
-		cout << p->id << "\t" << p->RGB_average << "\t\t" << p->mol << "\t" << p->path << endl;
+		cout << p->id << "\t" << p->rgb_item.RGB << "\t\t" << p->mol << "\t" << p->path << endl;
 		p = p->next;
 	}
 }
@@ -60,12 +66,23 @@ void SolutionList::showRGB_P()
 	cout << "id\tRGB_average\tmol\tRGB_P " << endl;
 	for (int i = 0; i < this->length; i++)
 	{
-		cout << p->id << "   \t" << p->RGB_average << "\t\t" << p->mol << "\t" << p->RGB_P<< "\t" << endl;
+		cout << p->id << "   \t" << p->rgb_item.RGB << "\t\t" << p->mol << "\t" << p->rgb_item.RGB_P<< "\t" << endl;
+		p = p->next;
+	}
+}
+void SolutionList::showRGB()
+{
+	Solution* p = head->next;
+	cout << "id  R  G  B  RGB  R_P  G_P  B_P  RGB_P" << endl;
+	for (int i = 0; i < this->length; i++)
+	{
+		cout << p->id << "  " << p->rgb_item.R << "  " << p->rgb_item.G << "  " << p->rgb_item.B << "  "
+			<< p->rgb_item.RGB << "  " << p->rgb_item.R_P << "  " << p->rgb_item.G_P << "  " << p->rgb_item.B_P << "  " << p->rgb_item.RGB_P << endl;
 		p = p->next;
 	}
 }
 /********************************************************************/
-int SolutionOperator::getRGB_average(string path)
+double SolutionOperator::getRGB_average(RGB_type type, string path)
 {
 	Mat img = imread(path);
 	/*判断路径是否合法*/
@@ -74,50 +91,96 @@ int SolutionOperator::getRGB_average(string path)
 		cout << "读取图片失败，请检测路径是否正确" << endl;
 		exit(-1);
 	}
-	int RGB_average = 0;
-	/*读取图像的RGB信息——区域每像素的平均RGB*/
-	for (int i = 0; i < img.rows; i++) 
-	{
-		for (int j = 0; j < img.cols; j++)
-		{
-			int RGB_tmp = img.at<Vec3b>(i, j)[0] + img.at<Vec3b>(i, j)[1] + img.at<Vec3b>(i, j)[2];
-			RGB_tmp /= 3;
-			RGB_average += RGB_tmp;
-		}
-	}
+	double RGB_average = compute_RGB(type, img);
 	return RGB_average /= img.rows * img.cols;	//rows*cols个像素
 }
 
-double SolutionOperator::compute_RGB_P(int index)
+double SolutionOperator::compute_RGB_P(RGB_type type, int index)
 {
-	return this->solutions[index]->RGB_P
-	= log((double)solutions[0]->RGB_average / solutions[index]->RGB_average);
+	double tmp = 0.0;
+	switch (type)
+	{
+	case R:
+		tmp = log10((double)solutions[0]->rgb_item.R / solutions[index]->rgb_item.R);
+		this->solutions[index]->rgb_item.R_P = tmp;
+		break;
+	case G:
+		tmp = log10((double)solutions[0]->rgb_item.G / solutions[index]->rgb_item.G);
+		this->solutions[index]->rgb_item.G_P = tmp;
+		break;
+	case B:
+		tmp = log10((double)solutions[0]->rgb_item.B / solutions[index]->rgb_item.B);
+		this->solutions[index]->rgb_item.B_P = tmp;
+		break;
+	case RGB:
+		tmp = log10((double)solutions[0]->rgb_item.RGB / solutions[index]->rgb_item.RGB);
+		this->solutions[index]->rgb_item.RGB_P = tmp;
+		break;
+	}
+	return tmp;
 }
 
-void SolutionOperator::compute_mol(double x)
+double SolutionOperator::compute_RGB(RGB_type type, Mat img)
+{
+	double RGB_average = 0;
+	for (int i = 0; i < img.rows; i++)
+	{
+		for (int j = 0; j < img.cols; j++)
+		{
+			double RGB_tmp = 0;
+			if (type == RGB_type::RGB)
+			{
+				for (int k = 0; k < type; k++)
+					RGB_tmp += img.at<Vec3b>(i, j)[k];
+				RGB_tmp /= 3;
+			}
+			else
+				RGB_tmp += img.at<Vec3b>(i, j)[type];
+			RGB_average += RGB_tmp;
+		}
+	}
+	return RGB_average;
+}
+
+void SolutionOperator::compute_mol(double y)
 {
 	double k_line = line_area[1] / line_area[0];	//计算k
-	Point2d p1(0, k_line * (0 - line_area[2]) + line_area[3]);
-	Point2d p2(Solution_mat.cols - 1, k_line * ((double)Solution_mat.cols - 1 - line_area[2]) + line_area[3]);
-	solution_mol = p1.y + ((p2.y - p1.y) / (p2.x - p1.x)) * (x - p1.x);
+	double b = line_area[3] - k_line * line_area[2];
+	// y = k*x + b
+	cout << "k = " << k_line
+		<< " b = -" << b << endl;
+	solution_mol = (y - b) / k_line;
 }
 
-int SolutionOperator::getRGB_average(int index)
+double SolutionOperator::getRGB_average(RGB_type type, int index)
 {
-	if (solutions[index]->RGB_average != -1)
-		return solutions[index]->RGB_average;
-	solutions[index]->RGB_average = this->getRGB_average(solutions[index]->path);
-	//cout << "solutions[index]->RGB_average 2 : " << solutions[index]->RGB_average << endl;
-	return solutions[index]->RGB_average;
-}
-
-double* SolutionOperator::compute_RGB_P()
-{
-	double* RGB_n = new double[this->solutions.Length() - 1];
-	/*链表第一个结点的溶液是参考溶液，因此跳过计算*/
-	for (int i = 1; i < this->solutions.Length(); i++)
+	if (type > 3)	return -1;
+	double tmp = this->get_signal_RGB(type, index);
+	switch (type)
 	{
-		RGB_n[i - 1] = this->compute_RGB_P(i);
+	case R:
+		solutions[index]->rgb_item.R = tmp;
+		break;
+	case G:
+		solutions[index]->rgb_item.G = tmp;
+		break;
+	case B:
+		solutions[index]->rgb_item.B = tmp;
+		break;
+	case RGB:
+		solutions[index]->rgb_item.RGB = tmp;
+		break;
+	}
+	//cout << "solutions[index]->rgb_item.RGB 2 : " << solutions[index]->rgb_item.RGB << endl;
+	return tmp; 
+}
+
+double* SolutionOperator::compute_RGB_P(RGB_type type)
+{
+	double* RGB_n = new double[this->solutions.Length()];
+	for (int i = 0; i < this->solutions.Length(); i++)
+	{
+		RGB_n[i] = this->compute_RGB_P(type, i);
 	}
 	return RGB_n;
 }
@@ -130,42 +193,25 @@ bool SolutionOperator::set_mol(int index, double mol)
 
 Vec4d SolutionOperator::polyfit(vector<Point2d>& solutions_vector)
 {
-	Solution_mat = cv::Mat::zeros(480, 640, CV_8UC3);
 	fitLine(solutions_vector, line_area, DIST_L2, 0, 1e-6, 1e-1);		//DIST_L2代表最小二乘法
 	return line_area;
 }
 
-double SolutionOperator::get_x_mol(double x)
+double SolutionOperator::get_x_mol(double y)
 {
-	compute_mol(x);
+	compute_mol(y);
 	return this->solution_mol;
 }
 
-int SolutionOperator::get_signal_RGB(RGB_type type, int index)
+double SolutionOperator::get_signal_RGB(RGB_type type, int index)
 {
-	if (type == RGB_type::RGB)
-	{
-		return getRGB_average(solutions[index]->path);
-	}
 	Mat img = imread(solutions[index]->path);
-	//cout << "path is " << solutions[index]->path << ", the type is " << type << endl;
 	/*判断路径是否合法*/
 	if (img.empty())
 	{
 		cout << "读取图片失败，请检测路径是否正确" << endl;
 		exit(-1);
 	}
-	int RGB_average = 0;
-	/*读取图像的RGB信息——区域每像素的平均RGB*/
-	for (int i = 0; i < img.rows; i++)
-	{
-		for (int j = 0; j < img.cols; j++)
-		{
-			int RGB_tmp = img.at<Vec3b>(i, j)[type];
-			RGB_tmp /= 3;
-			RGB_average += RGB_tmp;
-		}
-	}
+	double RGB_average = compute_RGB(type, img);
 	return RGB_average /= img.rows * img.cols;	//rows*cols个像素
-
 }
